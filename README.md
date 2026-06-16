@@ -1,0 +1,71 @@
+# claude-bootstrap
+
+Claude Code 인스턴스 부트스트랩. 원격 서버(Ubuntu)나 로컬(macOS)에서 Claude Code 설치부터 스킬/가이드/설정까지 원클릭으로 셋업한다.
+
+## 구성
+
+| 스크립트 | 역할 |
+|----------|------|
+| `install-claude-npm.sh` | Claude Code를 npm으로 설치/업데이트. Node.js 없으면 자동 설치 (macOS=Homebrew, Ubuntu=nvm). 기존 standalone 설치가 있으면 정리. |
+| `bootstrap-claude-instance.sh` | 스킬/가이드/전역설정/플러그인/alias를 `~/.claude/`에 설치. 설치할 콘텐츠는 스크립트 끝에 base64(tar.gz)로 임베드되어 있어 추가 네트워크/GitHub 인증 불필요. |
+
+## 사용법
+
+```bash
+# 1. Claude Code 설치 (Node.js 없으면 자동 설치)
+chmod +x install-claude-npm.sh
+./install-claude-npm.sh
+
+# 2. OAuth 인증 (별도 — 브라우저가 없는 서버는 device code flow)
+claude login
+
+# 3. 부트스트랩 (스킬/가이드/설정 설치)
+chmod +x bootstrap-claude-instance.sh
+./bootstrap-claude-instance.sh
+
+# 4. 새 터미널 열기 (또는 source ~/.bashrc / ~/.zshrc)
+```
+
+## 부트스트랩 설치 항목
+
+### 스킬 (15개) → `~/.claude/skills/`
+
+| 분류 | 스킬 |
+|------|------|
+| 세션 관리 | handoff, resume, session-continuity |
+| 개발 워크플로우 | sdd, sdd-specify, sdd-plan, sdd-tasks, sdd-implement, tdd-sprint |
+| 코드 품질 | debug, refactor, review |
+| 산출물 | html-ppt, html-base |
+| 정리 | tidy |
+
+### 가이드 (20개) → `~/.claude/guides/`
+
+context-strategy, design-process, doc-structure, getting-started, incident-response, mcp-guide, multi-llm-cli-auth, pencil-workflow, project-bootstrap, prompt-patterns, release-notes-convention, shadcn-guide, skill-design-principles, skill-workflows, subagents-vs-teams, token-optimization, workflow-combinations, anti-patterns, claude-codex-headless, claude-md-template, html-artifact-analysis
+
+### 설정
+
+| 항목 | 설명 |
+|------|------|
+| `CLAUDE.md` | 전역 AI 개발 원칙 (기존은 `.bak` 백업) |
+| `settings.json` | permissions, env, plugins, statusLine을 jq로 병합 (기존 설정 보존) |
+| HUD config | `~/.claude/plugins/claude-hud/config.json` |
+| 플러그인 선언 | superpowers, oh-my-claudecode, claude-hud (Claude Code 첫 실행 시 마켓에서 자동 설치) |
+| alias | `cc` (skip-permissions), `ca` (claude agents) |
+
+## 주의사항
+
+- `cc` alias는 `--dangerously-skip-permissions`를 사용합니다. **격리된 sandbox/개발 인스턴스 전용**이며, 프로덕션 접근이 가능한 환경에서는 사용하지 마세요.
+- 두 스크립트 모두 **멱등성**이 있어 여러 번 실행해도 안전합니다.
+- `install-claude-npm.sh`는 `~/.claude/` 설정을 건드리지 않습니다.
+- `bootstrap-claude-instance.sh`는 기존 `CLAUDE.md`, `settings.json`을 `.bak`으로 백업한 뒤 덮어씁니다.
+
+## 커스터마이징
+
+- 불필요한 스킬은 설치 후 `~/.claude/skills/`에서 삭제하면 됩니다.
+- 가이드도 마찬가지로 `~/.claude/guides/`에서 개별 관리 가능합니다.
+- 전역 `CLAUDE.md`는 설치 후 자유롭게 수정하세요.
+
+## 지원 OS
+
+- macOS (Homebrew 기반)
+- Ubuntu (apt + nvm 기반)
