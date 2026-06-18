@@ -1,15 +1,19 @@
 # claude-bootstrap
 
-Claude Code 인스턴스 부트스트랩. 원격 서버(Ubuntu)나 로컬(macOS)에서 Claude Code 설치부터 스킬/가이드/설정까지 원클릭으로 셋업한다.
+Claude Code 인스턴스 부트스트랩. 원격 서버(Ubuntu), 로컬(macOS), Windows에서 Claude Code 설치부터 스킬/가이드/설정까지 원클릭으로 셋업한다.
 
 ## 구성
 
-| 스크립트 | 역할 |
-|----------|------|
-| `install-claude-npm.sh` | Claude Code를 npm으로 설치/업데이트. Node.js 없으면 자동 설치 (macOS=Homebrew, Ubuntu=nvm). 기존 standalone 설치가 있으면 정리. |
-| `bootstrap-claude-instance.sh` | 스킬/가이드/전역설정/플러그인/alias를 `~/.claude/`에 설치. 설치할 콘텐츠는 스크립트 끝에 base64(tar.gz)로 임베드되어 있어 추가 네트워크/GitHub 인증 불필요. |
+| 스크립트 | OS | 역할 |
+|----------|----|------|
+| `install-claude-npm.sh` | macOS / Ubuntu | Claude Code를 npm으로 설치/업데이트. Node.js 없으면 자동 설치 (macOS=Homebrew, Ubuntu=nvm). 기존 standalone 설치가 있으면 정리. |
+| `bootstrap-claude-instance.sh` | macOS / Ubuntu | 스킬/가이드/전역설정/플러그인/alias를 `~/.claude/`에 설치. 설치할 콘텐츠는 스크립트 끝에 base64(tar.gz)로 임베드되어 있어 추가 네트워크/GitHub 인증 불필요. |
+| `install-claude-npm.ps1` | Windows | 위 install 스크립트의 PowerShell 포팅. Node.js를 winget/fnm/직접 다운로드로 설치. |
+| `bootstrap-claude-instance.ps1` | Windows | 위 bootstrap 스크립트의 PowerShell 포팅. jq 대신 PowerShell 네이티브 JSON 처리. 동일한 payload 임베드. |
 
 ## 사용법
+
+### macOS / Ubuntu (bash)
 
 ```bash
 # 1. Claude Code 설치 (Node.js 없으면 자동 설치)
@@ -24,6 +28,24 @@ chmod +x bootstrap-claude-instance.sh
 ./bootstrap-claude-instance.sh
 
 # 4. 새 터미널 열기 (또는 source ~/.bashrc / ~/.zshrc)
+```
+
+### Windows (PowerShell)
+
+```powershell
+# 0. 실행 정책 설정 (최초 1회)
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+
+# 1. Claude Code 설치 (Node.js 없으면 winget/fnm/직접 다운로드)
+.\install-claude-npm.ps1
+
+# 2. OAuth 인증
+claude login
+
+# 3. 부트스트랩 (스킬/가이드/설정 설치)
+.\bootstrap-claude-instance.ps1
+
+# 4. 새 PowerShell 창 열기 (또는 . $PROFILE)
 ```
 
 ## 부트스트랩 설치 항목
@@ -47,7 +69,7 @@ context-strategy, design-process, doc-structure, getting-started, incident-respo
 | 항목 | 설명 |
 |------|------|
 | `CLAUDE.md` | 전역 AI 개발 원칙 (기존은 `.bak` 백업) |
-| `settings.json` | permissions, env, plugins, statusLine을 jq로 병합 (기존 설정 보존) |
+| `settings.json` | permissions, env, plugins, statusLine 병합 (bash=jq, PowerShell=네이티브 JSON. 기존 설정 보존) |
 | HUD config | `~/.claude/plugins/claude-hud/config.json` |
 | 플러그인 선언 | superpowers, oh-my-claudecode, claude-hud (Claude Code 첫 실행 시 마켓에서 자동 설치) |
 | alias | `cc` (skip-permissions), `ca` (claude agents) |
@@ -67,5 +89,6 @@ context-strategy, design-process, doc-structure, getting-started, incident-respo
 
 ## 지원 OS
 
-- macOS (Homebrew 기반)
-- Ubuntu (apt + nvm 기반)
+- macOS (Homebrew 기반) — `.sh`
+- Ubuntu (apt + nvm 기반) — `.sh`
+- Windows 10+ (winget / fnm / 직접 다운로드) — `.ps1`
