@@ -2,6 +2,16 @@
 
 Claude Code 인스턴스 부트스트랩. 원격 서버(Ubuntu), 로컬(macOS), Windows에서 Claude Code 설치부터 스킬/가이드/설정까지 원클릭으로 셋업한다.
 
+## 왜 만들었나
+
+Claude Code는 설치 직후 빈 상태다. 스킬, 가이드, 전역 설정, 플러그인 선언을 매번 수동으로 세팅하는 건 번거롭고, 팀원마다 환경이 달라진다. 이 bootstrap은:
+
+- **원클릭 환경 통일**: 새 머신, 원격 서버, 팀원 온보딩 시 동일한 Claude Code 환경을 즉시 구성
+- **네트워크 독립**: 설치할 콘텐츠(스킬/가이드/설정)를 스크립트 끝에 base64(tar.gz)로 임베드. GitHub 인증이나 추가 다운로드 없이 단일 파일로 동작
+- **멱등성**: 여러 번 실행해도 안전. 기존 설정은 `.bak`으로 백업
+
+스킬과 가이드는 실무에서 Claude Code를 쓰면서 반복된 시행착오를 구조화한 것이다. AI가 설계 없이 코드부터 짜는 문제(→ SDD), 세션 간 컨텍스트 유실(→ handoff/resume), 원인 분석 없이 코드를 고치는 습관(→ debug) 등을 해결하기 위해 하나씩 만들었다.
+
 ## 구성
 
 | 스크립트 | OS | 역할 |
@@ -52,27 +62,116 @@ claude login
 
 ### 스킬 (15개) → `~/.claude/skills/`
 
-| 분류 | 스킬 |
-|------|------|
-| 세션 관리 | handoff, resume, session-continuity |
-| 개발 워크플로우 | sdd, sdd-specify, sdd-plan, sdd-tasks, sdd-implement, tdd-sprint |
-| 코드 품질 | debug, refactor, review |
-| 산출물 | html-ppt, html-base |
-| 정리 | tidy |
+모두 직접 제작한 커스텀 스킬이다. Claude Code에는 공식 스킬이 없으므로, 반복되는 워크플로우를 프롬프트 엔지니어링으로 구조화해서 만들었다. `/스킬명`으로 호출한다.
 
-### 가이드 (20개) → `~/.claude/guides/`
+#### 세션 관리
 
-context-strategy, design-process, doc-structure, getting-started, incident-response, mcp-guide, multi-llm-cli-auth, pencil-workflow, project-bootstrap, prompt-patterns, release-notes-convention, shadcn-guide, skill-design-principles, skill-workflows, subagents-vs-teams, token-optimization, workflow-combinations, anti-patterns, claude-codex-headless, claude-md-template, html-artifact-analysis
+| 스킬 | 설명 | 제작 동기 |
+|------|------|-----------|
+| `handoff` | 세션 인수인계 & 컨텍스트 체크포인트. 현재 작업 상태를 `.claude/handoff.md`에 저장 | Claude Code 세션이 길어지면 컨텍스트가 유실됨. 다음 세션에 이어하기 위한 체크포인트 |
+| `resume` | 이전 세션 이어하기. `handoff.md`를 읽고 작업 복원 | `handoff`와 쌍으로 사용. 세션 연속성 확보 |
+| `session-continuity` | 세션 연속성 오케스트레이터. handoff/resume을 자동 판단해서 실행 | handoff/resume을 매번 수동 호출하는 번거로움 해소 |
+
+#### 개발 워크플로우
+
+| 스킬 | 설명 | 제작 동기 |
+|------|------|-----------|
+| `sdd` | Specification-Driven Development 오케스트레이터. 아래 4단계를 순서대로 실행 | AI에게 "만들어줘"만 하면 설계 없이 코드부터 생성함. 설계→구현 순서를 강제하기 위해 |
+| `sdd-specify` | 1단계: 요구사항 정의. PRD/기능 명세를 구조화 | |
+| `sdd-plan` | 2단계: 기술 설계. 아키텍처, 데이터 모델, API 설계 | |
+| `sdd-tasks` | 3단계: 작업 분해. 구현 태스크를 우선순위와 의존성 포함해서 분리 | |
+| `sdd-implement` | 4단계: 태스크 단위 구현. 분해된 작업을 하나씩 구현 | |
+| `tdd-sprint` | 자율 테스트 주도 스프린트. 테스트 먼저 작성 → 구현 → 리팩토링 사이클 | TDD를 AI가 자율적으로 반복하게 해서 품질 확보 |
+
+#### 코드 품질
+
+| 스킬 | 설명 | 제작 동기 |
+|------|------|-----------|
+| `debug` | 디버깅 전문가. 에러 분석 → 원인 추론 → 수정 제안 순서로 진행 | AI가 에러를 보면 바로 코드를 고치려 함. 원인 분석을 먼저 하도록 강제 |
+| `refactor` | 리팩토링 전문가. 영향 범위 파악 → 계획 → 단계별 수정 | 무분별한 리팩토링 방지. 기존 인터페이스 보존하면서 내부만 개선 |
+| `review` | 코드 리뷰. diff 기반으로 버그, 보안, 성능 이슈 검출 | |
+
+#### 산출물
+
+| 스킬 | 설명 | 제작 동기 |
+|------|------|-----------|
+| `html-ppt` | HTML 프레젠테이션/슬라이드 생성. CSS scroll-snap 기반, 키보드/터치 네비게이션, 발표자 모드 | 팀 공유용 산출물을 외부 도구 없이 단일 HTML로 생성하기 위해 |
+| `html-base` | html-* 스킬 공통 디자인 시스템. 직접 호출하지 않음, html-ppt 등이 내부 참조 | 여러 html 스킬 간 디자인 일관성 유지 |
+
+#### 정리
+
+| 스킬 | 설명 | 제작 동기 |
+|------|------|-----------|
+| `tidy` | 세션 마무리 정리. 작업 내용 문서화(capture) + 문서 위치 컨벤션 검사(lint) | 세션 끝날 때 결정 사항이 휘발되지 않도록 |
+
+### 가이드 (21개) → `~/.claude/guides/`
+
+AI가 매 세션에서 참조하는 운영 지침서. Claude Code의 `CLAUDE.md`가 "무엇을 할지"를 정하면, 가이드는 "어떻게 할지"를 상세히 안내한다. 실무에서 반복된 시행착오를 정리한 것이다.
+
+#### 프로젝트 운영
+
+| 가이드 | 설명 |
+|--------|------|
+| `context-strategy` | 컨텍스트 관리 3-tier 전략. CLAUDE.md / rules / skills를 언제 어디에 쓸지 분류 기준 |
+| `doc-structure` | 프로젝트 문서 구조 컨벤션. `.claude/`(AI 운영) vs `docs/`(영속 지식) 배치 기준 |
+| `getting-started` | `.claude/` 디렉토리 배치 가이드. 새 환경 세팅 시 참조 |
+| `project-bootstrap` | 새 프로젝트 시작 시 AI 개발 가이드. 제품 정의 → 기술 스택 → 첫 구현까지 |
+| `claude-md-template` | `.claude/CLAUDE.md` 템플릿. 새 프로젝트의 CLAUDE.md 초안 작성용 |
+
+#### 개발 패턴
+
+| 가이드 | 설명 |
+|--------|------|
+| `prompt-patterns` | AI에게 효과적으로 지시하는 패턴 모음. 명확한 지시 → 좋은 결과 |
+| `anti-patterns` | "A 고치면 B 깨지는" 문제의 원인과 해결. AI 코딩의 흔한 실수 패턴 |
+| `skill-design-principles` | 스킬 설계 원칙. 새 스킬을 만들 때 따를 구조와 컨벤션 |
+| `skill-workflows` | 스킬 워크플로우 치트시트. 어떤 상황에 어떤 스킬을 쓸지 |
+| `workflow-combinations` | 워크플로우 조합 가이드. 여러 스킬을 연결해서 쓰는 패턴 |
+
+#### 기술 참조
+
+| 가이드 | 설명 |
+|--------|------|
+| `shadcn-guide` | shadcn/ui 종합 가이드. AI 주도 프론트엔드 개발에서 컴포넌트 사용법 참조 |
+| `mcp-guide` | MCP(Model Context Protocol) 활용 가이드. 외부 도구 연동 방법 |
+| `release-notes-convention` | 릴리즈 노트 컨벤션. Conventional Changelog 기반 |
+| `html-artifact-analysis` | AI + HTML 아티팩트 분석 보고서. html-ppt 등 산출물 품질 기준 |
+
+#### 운영/인프라
+
+| 가이드 | 설명 |
+|--------|------|
+| `multi-llm-cli-auth` | 멀티 LLM CLI OAuth 인증 가이드. Claude + Codex 등 여러 AI CLI 동시 사용 시 |
+| `claude-codex-headless` | Claude Main + Codex Headless 오케스트레이션. 두 AI를 조합해서 쓰는 패턴 |
+| `subagents-vs-teams` | Subagents vs Agent Teams. 언제 서브에이전트를, 언제 팀을 쓸지 판단 기준 |
+| `token-optimization` | 토큰 최적화 가이드. 컨텍스트 윈도우를 효율적으로 사용하는 방법 |
+| `incident-response` | 인시던트 대응 플레이북. 장애 발생 시 AI 활용 디버깅 절차 |
+
+#### 디자인/UI
+
+| 가이드 | 설명 |
+|--------|------|
+| `design-process` | 초기 설계 프로세스. 와이어프레임 → 디자인 → 구현 흐름 |
+| `pencil-workflow` | Pencil.dev를 활용한 UI 소통 워크플로우. 디자인 도구 연동 |
 
 ### 설정
 
 | 항목 | 설명 |
 |------|------|
-| `CLAUDE.md` | 전역 AI 개발 원칙 (기존은 `.bak` 백업) |
+| `CLAUDE.md` | 전역 AI 개발 원칙. 역할 분담, 코드 수정 규칙, 디버깅 절차 등을 정의 (기존은 `.bak` 백업) |
 | `settings.json` | permissions, env, plugins, statusLine 병합 (bash=jq, PowerShell=네이티브 JSON. 기존 설정 보존) |
 | HUD config | `~/.claude/plugins/claude-hud/config.json` |
-| 플러그인 선언 | superpowers, oh-my-claudecode, claude-hud (Claude Code 첫 실행 시 마켓에서 자동 설치) |
 | alias | `cc` (skip-permissions), `ca` (claude agents) |
+
+### 플러그인 (3개) — `settings.json`의 `enabledPlugins`에 선언
+
+Claude Code 첫 실행 시 공개 마켓에서 자동 설치된다. 이 bootstrap은 플러그인 코드를 포함하지 않고, "이 플러그인을 사용하겠다"는 선언만 한다.
+
+| 플러그인 | 출처 | 설명 |
+|----------|------|------|
+| [superpowers](https://github.com/anthropics/claude-code-plugins) | 커뮤니티 (오픈소스) | 브레인스토밍, 코드리뷰, TDD, 플랜 작성 등 14개 범용 워크플로우 스킬 |
+| [oh-my-claudecode](https://github.com/nicobailon/oh-my-claudecode) | 커뮤니티 (오픈소스) | 40+ 스킬 (analyst, architect, debugger, designer 등 전문가 서브에이전트) + LSP/AST 도구 |
+| [claude-hud](https://github.com/hugodutka/claude-hud) | 커뮤니티 (오픈소스) | 터미널 상단에 토큰 사용량, 세션 시간, 비용 등을 표시하는 HUD |
 
 ## 주의사항
 
