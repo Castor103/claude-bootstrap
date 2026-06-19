@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Claude 인스턴스 부트스트랩 (Windows PowerShell)

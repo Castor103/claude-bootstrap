@@ -46,6 +46,10 @@ chmod +x bootstrap-claude-instance.sh
 # 0. 실행 정책 설정 (최초 1회)
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
+# 0-1. 다운로드한 파일 차단 해제 (인터넷에서 받은 경우)
+Unblock-File .\install-claude-npm.ps1
+Unblock-File .\bootstrap-claude-instance.ps1
+
 # 1. Claude Code 설치 (Node.js 없으면 winget/fnm/직접 다운로드)
 .\install-claude-npm.ps1
 
@@ -189,6 +193,7 @@ Claude Code 첫 실행 시 공개 마켓에서 자동 설치된다. 이 bootstra
 ## Windows 관련 주의사항
 
 - **Windows 10 build 17063+** 필요 (내장 `tar.exe` 의존). 이전 빌드에서는 별도 tar 설치 필요.
+- 인터넷에서 다운로드한 `.ps1` 파일은 실행 전 **차단 해제**가 필요합니다: `Unblock-File .\파일명.ps1` 또는 파일 우클릭 → 속성 → "차단 해제" 체크.
 - Node.js MSI 직접 설치 경로는 **관리자 권한(UAC)** 이 필요합니다. winget은 대부분 비관리자로 동작합니다.
 - `AllSigned` 실행 정책이 GPO로 강제된 환경에서는 스크립트에 서명이 필요하거나, `powershell -ExecutionPolicy Bypass -File .\script.ps1`로 실행하세요.
 - `$PROFILE`에 등록되는 `cc`/`ca` alias는 **현재 PowerShell 호스트 전용**입니다. VS Code 터미널, pwsh, Windows PowerShell은 각각 다른 profile 파일을 사용하므로, 다른 호스트에서도 쓰려면 해당 profile에 수동 복사하세요.
