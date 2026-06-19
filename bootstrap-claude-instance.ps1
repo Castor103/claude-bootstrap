@@ -168,7 +168,8 @@ if (-not $nodeBin) { $nodeBin = "node" }
 Write-Host "  - statusLine node 경로: $nodeBin"
 
 if (Test-Path $fragmentPath) {
-    $fragmentText = (Get-Content $fragmentPath -Raw) -replace "__NODE_BIN__", $nodeBin
+    $nodeEscaped = $nodeBin -replace '\\', '\\\\'
+    $fragmentText = (Get-Content $fragmentPath -Raw) -replace "__NODE_BIN__", $nodeEscaped
     $fragment = $fragmentText | ConvertFrom-Json
 
     # 기존 settings 로드 (없으면 빈 객체)
@@ -207,7 +208,7 @@ if (Test-Path $fragmentPath) {
         }
     }
 
-    $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath -Encoding UTF8
+    [System.IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 10), [System.Text.UTF8Encoding]::new($false))
     Write-Host "  OK 병합 완료 (permissions/env/plugins/statusLine)" -ForegroundColor Green
 }
 Write-Host ""

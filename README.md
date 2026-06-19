@@ -87,8 +87,15 @@ context-strategy, design-process, doc-structure, getting-started, incident-respo
 - 가이드도 마찬가지로 `~/.claude/guides/`에서 개별 관리 가능합니다.
 - 전역 `CLAUDE.md`는 설치 후 자유롭게 수정하세요.
 
+## Windows 관련 주의사항
+
+- **Windows 10 build 17063+** 필요 (내장 `tar.exe` 의존). 이전 빌드에서는 별도 tar 설치 필요.
+- Node.js MSI 직접 설치 경로는 **관리자 권한(UAC)** 이 필요합니다. winget은 대부분 비관리자로 동작합니다.
+- `AllSigned` 실행 정책이 GPO로 강제된 환경에서는 스크립트에 서명이 필요하거나, `powershell -ExecutionPolicy Bypass -File .\script.ps1`로 실행하세요.
+- `$PROFILE`에 등록되는 `cc`/`ca` alias는 **현재 PowerShell 호스트 전용**입니다. VS Code 터미널, pwsh, Windows PowerShell은 각각 다른 profile 파일을 사용하므로, 다른 호스트에서도 쓰려면 해당 profile에 수동 복사하세요.
+
 ## 지원 OS
 
 - macOS (Homebrew 기반) — `.sh`
 - Ubuntu (apt + nvm 기반) — `.sh`
-- Windows 10+ (winget / fnm / 직접 다운로드) — `.ps1`
+- Windows 10 build 17063+ (winget / fnm / 직접 다운로드) — `.ps1`

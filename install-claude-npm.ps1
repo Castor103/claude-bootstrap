@@ -68,13 +68,13 @@ else {
     $wingetExists = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetExists -and -not $installed) {
         Write-Host "  winget으로 Node.js LTS 설치 중..."
-        try {
-            winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
+        winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
+        if ($LASTEXITCODE -eq 0) {
             $installed = $true
             Write-Host "  OK winget으로 Node.js 설치 완료" -ForegroundColor Green
         }
-        catch {
-            Write-Host "  ! winget 설치 실패, 다른 방법 시도..." -ForegroundColor Yellow
+        else {
+            Write-Host "  ! winget 설치 실패 (exit: $LASTEXITCODE), 다른 방법 시도..." -ForegroundColor Yellow
         }
     }
 
@@ -82,15 +82,15 @@ else {
     $fnmExists = Get-Command fnm -ErrorAction SilentlyContinue
     if ($fnmExists -and -not $installed) {
         Write-Host "  fnm으로 Node.js v20 설치 중..."
-        try {
-            fnm install 20
+        fnm install 20
+        if ($LASTEXITCODE -eq 0) {
             fnm use 20
             fnm default 20
             $installed = $true
             Write-Host "  OK fnm으로 Node.js 설치 완료" -ForegroundColor Green
         }
-        catch {
-            Write-Host "  ! fnm 설치 실패, 다른 방법 시도..." -ForegroundColor Yellow
+        else {
+            Write-Host "  ! fnm 설치 실패 (exit: $LASTEXITCODE), 다른 방법 시도..." -ForegroundColor Yellow
         }
     }
 
@@ -105,8 +105,13 @@ else {
         Invoke-WebRequest -Uri $msiUrl -OutFile $msiPath -UseBasicParsing
 
         Write-Host "  MSI 설치 중 (관리자 권한 필요할 수 있음)..."
-        Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /qn" -Wait -NoNewWindow
+        $proc = Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /qn" -Wait -NoNewWindow -PassThru
         Remove-Item $msiPath -ErrorAction SilentlyContinue
+
+        if ($proc.ExitCode -ne 0) {
+            Write-Host "  ! MSI 설치 실패 (exit: $($proc.ExitCode)). 관리자 권한으로 다시 시도하세요." -ForegroundColor Red
+            exit 1
+        }
 
         # PATH 갱신 (MSI가 시스템 PATH에 추가하므로 현재 세션에 반영)
         $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
